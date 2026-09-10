@@ -32,6 +32,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EW4All Satellite Products Dashboard</title>
+<link rel="icon" href="assets/wmo-logo.png">
 
 <!-- ================================================================================================
      1.  FONTS AND BASE STYLES
@@ -634,7 +635,9 @@ class Component extends DCLogic {
       ' · ' + Object.keys(W.byProduct).length + ' products matched' +
       ' · ' + noPlatform.length + ' unrecognised platform, ' + noVariable.length + ' no variable stated, ' +
       unknownOrg.length + ' from organisations outside the dashboard.' +
-      ((noPlatform.length || noVariable.length) ? ' Records needing a rule update are listed below.' : ''));
+      // only an unrecognised platform needs a rule change; a record that states no variable
+      // is usually a Level 1 feed, which is correctly left unmatched
+      (noPlatform.length ? ' Platforms needing a rule update are listed below.' : ''));
     if (noPlatform.length) console.info('[WIS2] platform not recognised:', noPlatform.map(r => r.title + '  ' + r.id));
     if (noVariable.length) console.info('[WIS2] variable not stated:', noVariable.map(r => r.title + '  ' + r.id));
   }
