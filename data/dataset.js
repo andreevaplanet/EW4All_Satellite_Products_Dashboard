@@ -1312,7 +1312,7 @@ window.EW4ALL_SAT = {
     },
     {
       "id": "p16",
-      "name": "Sulphur Dioxide Detection",
+      "name": "Sulphur Dioxide Detection (SO2D)",
       "provider": "KMA National Meteorological Satellite Center",
       "operator": "KMA",
       "operators": [
