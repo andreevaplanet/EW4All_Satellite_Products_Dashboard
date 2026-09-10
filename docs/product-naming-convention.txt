@@ -1,0 +1,143 @@
+EW4All Satellite Products Dashboard — product naming convention
+Internal reference. Applied 26 August 2026 across all 193 product cards.
+
+
+1. THE CONVENTION
+
+  Case            Title Case for the product phrase, with articles, prepositions and
+                  conjunctions in lower case (of, at, in, for, and, by, from, the, to).
+                  About three quarters of the catalogue already read this way; the rest
+                  were brought into line.
+
+  Word order      Instrument or satellite first where the provider names one, then the
+                  variable, then qualifiers in parentheses. This was already the CMA and
+                  EUMETSAT pattern; it is now also applied to JAXA and KMA products where
+                  it was needed to tell two identically-named products apart.
+
+  Processing      "Level 1", "Level 2", "Level 3" always spelled out, never L1/L2/L3, and
+  level           placed after the instrument and before the variable.
+
+  Acronyms in     Retained only where the acronym is a provider product code (KMA's (RR),
+  brackets        (CTH), (TPW); EUMETSAT's H SAF codes (H60B), (H34)) or is reused later
+                  in the same name. Removed where it merely repeats words spelled out
+                  immediately before: "Sea Surface Temperature (SST)" became "Sea Surface
+                  Temperature", which now matches "Land Surface Temperature".
+
+  Units           Space between number and unit: 25 km, 3.9 µm, 5000 m, 24 h. Lower-case
+                  unit symbols. Superscripts for powers: m³/s, km². Units in parentheses,
+                  not square brackets. Units removed from a name where they described the
+                  variable rather than identified the product (NASA's "(K)").
+
+  Wavelengths     "µm", never "um" and never the CJK compatibility character "㎛".
+
+  Number          Singular for a single variable ("Cloud Top Temperature"), plural only
+                  where the product genuinely delivers a set ("Aerosol Properties",
+                  "Vegetation Health Products").
+
+  Compounds       Closed where standard usage closes them: shortwave, longwave, wildfire,
+                  nowcasting. Hyphenated modifiers in Title Case: "Real-Time",
+                  "AMV-Based", "All-Weather", "10-Day".
+
+  Punctuation     "and" rather than "&". Commas rather than slashes in lists of variables.
+                  No space around a solidus joining two values (12.5/25 km). Space before
+                  an opening parenthesis. En dash before a trailing regional qualifier.
+
+  Regional        IODC carried as a hyphenated prefix ("MSG-IODC ..."), not as a trailing
+  qualifiers      suffix, since the majority of those products already read that way.
+
+
+2. WHAT WAS NOT CHANGED
+
+Official provider product names were left alone even where they break the pattern: the
+MODIS collection names (MOD14A1, MYD14A1, MCD14ML, MCD64A1), FIRMS, GSMaP, GeoNEX,
+NEX-GDDP-CMIP6, ERSST, ICOADS, NOAAGlobalTemp, the NOAA tropical cyclone techniques (ADT,
+MTCSWA, eTRaP, HISA, TCFP), CLARA-A3, SARAH-2 and SARAH-3. Long channel enumerations were
+left as enumerations; they are already recorded as a source-structure issue rather than
+treated as names.
+
+126 of 193 names changed. 67 were already consistent with the convention.
+
+
+3. FLAGGED, NOT CHANGED
+
+  CMA "Normalized Vegetation Index" (4 products). The variable is almost certainly the
+  Normalized Difference Vegetation Index (NDVI), the standard term. Not renamed, because
+  the wording may be CMA's own product name. The US "-ized" spelling is also left as CMA
+  wrote it, unlike "Sulphur" and "Vapour" elsewhere, because the whole name is under query
+  and changing its spelling while querying its wording would be confusing. Confirm both
+  with CMA.
+
+  KMA "AMV WV069". The code implies the 6.9 µm water vapour channel, but unlike the other
+  three AMV products the wavelength is not written out in the source, so it is not
+  asserted in the name. Confirm with KMA.
+
+  "Sulfur" versus "sulphur". KMA and NASA write "Sulfur", EUMETSAT writes "Sulphur". The
+  KMA product name was set to the WMO house spelling ("Sulphur Dioxide Detection"); the
+  NASA name was left as the provider wrote it because it forms part of a named service
+  ("AIRS Rapid Response"). Confirm whether provider spelling or house style should win.
+
+  ISRO "Fire". A one-word name that says nothing about what the product delivers —
+  detection, radiative power or burned area. Not expanded, because expanding it would mean
+  inventing content. Ask ISRO for the product's proper name.
+
+  Two names are still shared by two products each: "Land Surface Temperature" (NASA and
+  IMD/ISRO) and "Sea Surface Temperature" (NASA and IMD). Both are generic variable names
+  used by different providers, and the provider is shown on every card, so they are left
+  as they are rather than padded with instrument prefixes the sources do not give.
+
+  Roshydromet's four-products-in-one-cell and NOAA's three-in-one entries were Title Cased
+  and their stray backtick removed, but they were not split; they remain on the validation
+  sheet as source-structure issues.
+
+  EUMETSAT p144, "Surface Radiation Dataset - Heliosat (SARAH-3 CDR)", keeps its
+  hyphen-space because "Surface Radiation Data Set - Heliosat" is the CM SAF product's own
+  name and the dash is part of it. It is the one deliberate exception to the punctuation
+  rule.
+
+
+5. TERMS USED ONE WAY ONLY
+
+Applying the rules name by name left five cases where the same concept was still written
+two ways across comparable products. Each is now settled on one form:
+
+  Near real time    Spelled out as "Near Real-Time" in every name; NRT retained only
+                    inside a provider product code, "(NRT S3 FRP)". Three EUMETSAT
+                    aerosol and trace-gas products changed.
+
+  Nowcasting SAF    "NWC SAF" throughout, the form the SAF uses itself. The cloud
+                    products entry previously read "Nowcasting SAF".
+
+  Global            Spelled out throughout. The Cloud Analysis Product entry previously
+  Instability Index abbreviated it to GII while two sibling products spelled it out.
+
+  High resolution   Hyphenated where it modifies a following noun — "High-Resolution
+                    Cloud Analysis Information", "ASCAT Ultra High-Resolution Winds",
+                    "SAR High-Resolution Tropical Cyclone Wind Speeds". Left unhyphenated
+                    in "Altimetry Level 2 High Resolution", where it is a trailing noun
+                    phrase naming EUMETSAT's own product variant rather than a modifier.
+                    This is the second deliberate exception, alongside p144.
+
+  Multi-product     Semicolons separate the products named in a single source cell. Applied
+  cells             to the Roshydromet tropical cyclone entry and to NOAA's "MiRS
+                    Precipitation Rate; GAASP Precipitation Rate; Snowfall Rate", which
+                    previously ran together as one unpunctuated string. Neither is split
+                    into separate records; both remain on the validation sheet.
+
+An audit script now checks every rule in section 1 and these five term pairs against all
+193 names, so the next person changing a name can re-run it rather than reading the
+catalogue by eye.
+
+
+4. FULL LOG
+
+Every change is listed in ew4all-name-changes.csv, one row per product:
+ID, provider, original name, revised name, reason.
+
+Changes by provider: EUMETSAT 44, KMA 17, JAXA 17, CMA 16, NOAA 13, NASA 10, JMA 4, Roshydromet 3, IMD 2.
+
+A second pass caught eight products the first pass missed — MWRI Cloud Liquid Water still
+reading "Ascend", MERSI-II "Water Vapor" against the house spelling used elsewhere, four
+lower-case words mid-name with Title-Cased comparators in the catalogue, and the two
+Global Instability Index products still carrying hyphen-space suffixes. The audit is now
+run mechanically against each rule in section 1, and the only remaining flag is the
+deliberate p144 exception above.

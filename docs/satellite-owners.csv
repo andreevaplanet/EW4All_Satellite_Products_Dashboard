@@ -1,0 +1,28 @@
+satellite_or_platform,operated_by,products
+Meteosat (MSG),EUMETSAT,37
+Meteosat (MTG),EUMETSAT,8
+Metop,EUMETSAT,25
+Sentinel (Copernicus),EU Copernicus — EUMETSAT / ESA,7
+GK-2A,KMA,16
+FY-3,CMA,18
+FY-4B,CMA,10
+Himawari-8/9,JMA,18
+GPM constellation,NASA / JAXA,10
+GCOM-W (AMSR2),JAXA,15
+GCOM-C (SGLI),JAXA,5
+"JPSS (S-NPP, NOAA-20/21)",NOAA / NASA,21
+GOES,NOAA,13
+NOAA-19,NOAA,1
+DMSP,US Department of Defense,9
+"Terra / Aqua (MODIS, AIRS)",NASA,10
+CYGNSS,NASA,1
+QuikSCAT,NASA,1
+INSAT-3D/3DR/3DS,ISRO / IMD,9
+Oceansat-3,ISRO,1
+Elektro-L,Roscosmos,2
+Arktika-M,Roscosmos,1
+Meteor-M,Roscosmos,2
+Kanopus-V,Roscosmos,2
+RADARSAT / RCM,Canadian Space Agency,2
+"Ground, in-situ and model inputs",Various — non-satellite,18
+Multiple / not specified,Not specified,4

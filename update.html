@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Regenerates data/dataset.js from data/products.xlsx.
+
+  Only needed so that index.html is correct when opened straight from disk. When the
+  dashboard is served over HTTP it reads the workbook itself and this page is not required.
+
+  Nothing is uploaded anywhere: the workbook is read in your browser and the result is
+  offered back as a download.
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Update the dashboard dataset</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #F2F6F9; font: 400 14px/1.6 Arial, Helvetica, sans-serif; color: #132B45; }
+  a { color: #005BAA; }
+</style>
+</head>
+
+<body>
+<div style="max-width:780px;margin:0 auto;padding:38px 26px 60px">
+
+  <div style="font:800 11px Montserrat,Arial,sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:#005BAA">EW4All Satellite Products Dashboard</div>
+  <h1 style="font:700 26px/1.25 Montserrat,Arial,sans-serif;margin:8px 0 10px">Update the dataset</h1>
+  <p style="margin:0 0 6px;max-width:620px">
+    Drop <strong>data/products.xlsx</strong> below. This page reads it, checks it, and gives you a new
+    <strong>data/dataset.js</strong> to commit alongside the workbook.
+  </p>
+  <p style="margin:0 0 26px;max-width:620px;color:#5A6A7C;font-size:13px">
+    Only needed so the dashboard is correct when index.html is opened straight from disk. Served over
+    HTTP it reads the workbook itself. Nothing leaves your computer.
+  </p>
+
+  <label id="drop" for="file" style="display:block;border:2px dashed #9FD8E2;background:#F5FBFC;padding:40px 26px;text-align:center;cursor:pointer">
+    <div style="font:700 15px Montserrat,Arial,sans-serif;color:#00707F">Drop products.xlsx here, or click to choose it</div>
+    <div style="font-size:13px;color:#5A6A7C;margin-top:6px">The workbook is not uploaded — it is read in this browser</div>
+  </label>
+  <input id="file" type="file" accept=".xlsx" style="position:absolute;width:1px;height:1px;opacity:0">
+
+  <div id="result" style="margin-top:24px"></div>
+
+</div>
+
+<script src="data/dataset.js"></script>
+<script>
+/* ==============================================================================================
+   Reads data/products.xlsx and turns it into the dataset the dashboard displays.
+
+   The workbook is the thing you edit. This code opens it, reads the Products, Training,
+   Operators and Hazards sheets, and hands the result to the page. If the workbook is missing,
+   or the page was opened straight from disk where a browser will not read neighbouring files,
+   it returns null and the dataset built into index.html is used instead.
+
+   No library. An .xlsx file is a zip of XML, and the browser can unzip and parse both.
+   ============================================================================================== */
+
+window.EW4ALL_WORKBOOK_URL = 'data/products.xlsx';
+
+window.EW4ALL_READ_WORKBOOK = async function () {
+  let sheets;
+  try {
+    const response = await fetch(window.EW4ALL_WORKBOOK_URL, { cache: 'no-store' });
+    if (!response.ok) return null;
+    sheets = await readXlsx(await response.arrayBuffer());
+  } catch (e) {
+    return null;                                   // opened from disk, or no workbook committed
+  }
+  if (!sheets || !sheets.Products || sheets.Products.length < 2) return null;
+  try {
+    return buildDataset(sheets);
+  } catch (e) {
+    console.warn('[EW4All] data/products.xlsx could not be read; using the dataset in index.html.', e);
+    return null;
+  }
+};
+
+/* ---- turning the sheets into the dataset -----------------------------------------------------
+   Every value the dashboard shows comes from a column in the workbook. A few fields the
+   dashboard keeps but never displays — the source row references, the values as originally
+   reported — are carried over from the built-in dataset by product ID, so editing the workbook
+   never discards them.                                                                        */
+
+function buildDataset(sheets) {
+  const base = window.EW4ALL_SAT || {};
+  const previous = {};
+  (base.products || []).forEach(p => { previous[p.id] = p; });
+
+  // Short controlled values sit on one line separated by semicolons; prose values that may
+  // themselves contain punctuation sit one per line inside the cell.
+  const list = v => String(v || '').split(';').map(s => s.trim()).filter(Boolean);
+  const lines = v => String(v || '').split('\n').map(s => s.trim()).filter(Boolean);
+  const one = v => String(v || '').trim();
+  const isAddress = u => /^(https?|ftp):/i.test(u) || /^(www|ftp)\./i.test(u) ||
+    /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i.test(u);
+
+  const products = rows(sheets.Products).map(r => {
+    const prior = previous[one(r['ID'])] || {};
+    const operators = list(r['Operators']);
+    return {
+      id: one(r['ID']),
+      name: one(r['Product name']),
+      provider: one(r['Provider']),
+      operator: operators.join(' / '),
+      operators: operators,
+      hazards: list(r['Priority hazards']),
+      group: one(r['Product group']),
+      satellites: list(r['Satellite / platform']),
+      inputs: lines(r['Input data']),
+      purpose: one(r['Purpose']),
+      freq: lines(r['Frequency']),
+      res: lines(r['Spatial resolution']),
+      extent: lines(r['Coverage stated']),
+      coverage: list(r['Coverage region']),
+      temporal: lines(r['Archive period']),
+      latency: one(r['Latency']),
+      formats: lines(r['Formats']),
+      access: one(r['Access conditions']),
+      policy: lines(r['Data policy']),
+      status: one(r['Maturity']),
+      poc: lines(r['Point of contact']),
+      comments: lines(r['Provider remarks']),
+      mode: one(r['Mode']),
+      programmes: list(r['Programme']),
+      channels: parseRoutes(r['Access routes']),
+      // some routes state an arrangement ("direct distribution") where an address would go;
+      // those are shown as written but are not links
+      urls: parseRoutes(r['Access routes']).flatMap(c => c.u.split(/\s+/)).filter(isAddress),
+      // carried over, not editable in the workbook
+      rows: prior.rows || [],
+      training: prior.training || [],
+      latencyRaw: prior.latencyRaw || lines(r['Latency']),
+      statusRaw: prior.statusRaw || lines(r['Maturity']),
+      temporalSrc: prior.temporalSrc || [],
+      nameSrc: prior.nameSrc || one(r['Product name'])
+    };
+  }).filter(p => p.id && p.name);
+
+  const training = rows(sheets.Training).map(r => ({
+    id: one(r['ID']),
+    title: one(r['Title']),
+    source: one(r['Source']),
+    provider: one(r['Provider / organiser']),
+    presenter: one(r['Presenter']),
+    type: one(r['Type']),
+    hazards: list(r['Priority hazards']),
+    group: one(r['Product group']),
+    operators: list(r['Operators']),
+    satellites: list(r['Satellites']),
+    region: one(r['Region']),
+    minutes: one(r['Minutes']),
+    language: one(r['Language']),
+    urls: one(r['Links']).split(/\s+/).filter(Boolean),
+    parts: one(r['Additional parts']).split('|').map(s => s.trim()).filter(Boolean),
+    linkedProducts: list(r['Linked products'])
+  })).filter(t => t.id && t.title);
+
+  const operators = rows(sheets.Operators)
+    .map(r => ({ name: one(r['Operator']), full: one(r['Full name']), place: one(r['Location']) }))
+    .filter(o => o.name);
+
+  const hazardMeta = rows(sheets.Hazards).map(r => {
+    const prior = (base.hazardMeta || []).find(h => h.name === one(r['Hazard'])) || {};
+    return { name: one(r['Hazard']), colour: one(r['Colour']), tagline: one(r['Tagline']), gap: prior.gap };
+  }).filter(h => h.name);
+
+  return Object.assign({}, base, {
+    products: products,
+    training: training.length ? training : base.training,
+    operators: operators.length ? operators : base.operators,
+    hazardMeta: hazardMeta.length ? hazardMeta : base.hazardMeta,
+    meta: Object.assign({}, base.meta, {
+      products: products.length,
+      training: (training.length ? training : base.training || []).length,
+      readFrom: window.EW4ALL_WORKBOOK_URL
+    })
+  });
+}
+
+// "EUMETSAT Data Store | https://… | BUFR", one route per line inside the cell
+function parseRoutes(cell) {
+  return String(cell || '').split('\n').map(line => {
+    const part = line.split('|').map(s => s.trim());
+    return { d: part[0] || '', u: part[1] || '', f: part[2] || '' };
+  }).filter(c => c.d || c.u);
+}
+
+// each sheet arrives as an array of arrays; turn rows 2..n into objects keyed by row 1
+function rows(grid) {
+  const head = grid[0] || [];
+  return grid.slice(1)
+    .filter(r => r.some(v => String(v || '').trim()))
+    .map(r => { const o = {}; head.forEach((h, i) => { o[String(h).trim()] = r[i] || ''; }); return o; });
+}
+
+/* ---- reading the .xlsx file ------------------------------------------------------------------
+   An .xlsx is a zip archive of XML parts. We read the central directory, inflate the parts we
+   need, and pull the cell text out. Only what this dashboard uses is handled: cell values as
+   inline strings or shared strings. Formulas, dates and number formats are not interpreted,
+   which is why every column in the workbook is plain text.                                    */
+
+async function readXlsx(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const files = await unzip(bytes);
+  const text = name => files[name] ? new TextDecoder().decode(files[name]) : null;
+
+  const strings = [];
+  const sharedXml = text('xl/sharedStrings.xml');
+  if (sharedXml) {
+    (sharedXml.match(/<si>[\s\S]*?<\/si>/g) || []).forEach(si => {
+      let s = ''; (si.match(/<t[^>]*>([\s\S]*?)<\/t>/g) || []).forEach(t => { s += decode(t.replace(/<[^>]+>/g, '')); });
+      strings.push(s);
+    });
+  }
+
+  const relsXml = text('xl/_rels/workbook.xml.rels') || '';
+  const targets = {};
+  (relsXml.match(/<Relationship[^>]*>/g) || []).forEach(rel => {
+    const id = /Id="([^"]+)"/.exec(rel), target = /Target="([^"]+)"/.exec(rel);
+    if (id && target) targets[id[1]] = 'xl/' + target[1].replace(/^\/?xl\//, '');
+  });
+
+  const out = {};
+  (text('xl/workbook.xml').match(/<sheet[^>]*>/g) || []).forEach(tag => {
+    const name = /name="([^"]+)"/.exec(tag), rid = /r:id="([^"]+)"/.exec(tag);
+    if (!name || !rid || !targets[rid[1]]) return;
+    out[decode(name[1])] = readSheet(text(targets[rid[1]]) || '', strings);
+  });
+  return out;
+}
+
+function readSheet(xml, strings) {
+  const grid = [];
+  (xml.match(/<row[\s\S]*?<\/row>|<row[^>]*\/>/g) || []).forEach(rowXml => {
+    const index = /\sr="(\d+)"/.exec(rowXml);
+    const cells = [];
+    (rowXml.match(/<c[\s\S]*?<\/c>|<c[^>]*\/>/g) || []).forEach(cellXml => {
+      const ref = /r="([A-Z]+)\d+"/.exec(cellXml);
+      if (!ref) return;
+      const type = /\st="([^"]+)"/.exec(cellXml);
+      let value = '';
+      if (type && type[1] === 'inlineStr') {
+        (cellXml.match(/<t[^>]*>([\s\S]*?)<\/t>/g) || []).forEach(t => { value += decode(t.replace(/<[^>]+>/g, '')); });
+      } else {
+        const v = /<v>([\s\S]*?)<\/v>/.exec(cellXml);
+        if (v) value = (type && type[1] === 's') ? (strings[+v[1]] || '') : decode(v[1]);
+      }
+      cells[columnIndex(ref[1])] = value;
+    });
+    grid[(index ? +index[1] : grid.length + 1) - 1] = cells;
+  });
+  for (let i = 0; i < grid.length; i++) if (!grid[i]) grid[i] = [];
+  return grid;
+}
+
+const columnIndex = letters => {
+  let n = 0;
+  for (const ch of letters) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n - 1;
+};
+
+const decode = s => String(s)
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+  .replace(/&#(\d+);/g, (m, d) => String.fromCharCode(+d)).replace(/&amp;/g, '&');
+
+// central-directory walk, then inflate each entry that we might want
+async function unzip(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let end = -1;
+  for (let i = bytes.length - 22; i >= 0 && i > bytes.length - 66000; i--) {
+    if (view.getUint32(i, true) === 0x06054b50) { end = i; break; }
+  }
+  if (end < 0) throw new Error('not a zip file');
+
+  const count = view.getUint16(end + 10, true);
+  let at = view.getUint32(end + 16, true);
+  const out = {};
+  for (let n = 0; n < count; n++) {
+    const nameLength = view.getUint16(at + 28, true);
+    const extraLength = view.getUint16(at + 30, true);
+    const commentLength = view.getUint16(at + 32, true);
+    const method = view.getUint16(at + 10, true);
+    const compressedSize = view.getUint32(at + 20, true);
+    const localHeader = view.getUint32(at + 42, true);
+    const name = new TextDecoder().decode(bytes.subarray(at + 46, at + 46 + nameLength));
+
+    const localNameLength = view.getUint16(localHeader + 26, true);
+    const localExtraLength = view.getUint16(localHeader + 28, true);
+    const start = localHeader + 30 + localNameLength + localExtraLength;
+    const data = bytes.subarray(start, start + compressedSize);
+    out[name] = method === 0 ? data : await inflate(data);
+
+    at += 46 + nameLength + extraLength + commentLength;
+  }
+  return out;
+}
+
+async function inflate(data) {
+  const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+</script>
+<script>
+/* ---- the page itself --------------------------------------------------------------------- */
+
+const drop = document.getElementById('drop');
+const result = document.getElementById('result');
+
+document.getElementById('file').addEventListener('change', e => { if (e.target.files[0]) handle(e.target.files[0]); });
+['dragover', 'dragenter'].forEach(t => drop.addEventListener(t, e => {
+  e.preventDefault(); drop.style.background = '#E4F4F6'; drop.style.borderColor = '#00707F';
+}));
+['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => {
+  e.preventDefault(); drop.style.background = '#F5FBFC'; drop.style.borderColor = '#9FD8E2';
+}));
+drop.addEventListener('drop', e => { if (e.dataTransfer.files[0]) handle(e.dataTransfer.files[0]); });
+
+async function handle(file) {
+  say('Reading ' + file.name + '…', '#5A6A7C');
+  let data;
+  try {
+    const sheets = await readXlsx(await file.arrayBuffer());
+    if (!sheets.Products) throw new Error('no sheet named "Products" in this workbook');
+    data = buildDataset(sheets);
+  } catch (err) {
+    return say('Could not read that file: ' + err.message, '#B5460A');
+  }
+
+  const problems = check(data);
+  const before = window.EW4ALL_SAT || { products: [], training: [] };
+  const summary =
+    row('Products', before.products.length, data.products.length) +
+    row('Training resources', before.training.length, data.training.length) +
+    row('Operators', before.operators.length, data.operators.length);
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  const text =
+    '/* ' + '='.repeat(94) + '\n' +
+    '   EW4All Satellite Products Dashboard — dataset\n\n' +
+    '   Generated from ' + file.name + ' by update.html. Do not edit by hand: edit the workbook and\n' +
+    '   regenerate. Generated ' + stamp + ' · ' + data.products.length + ' products · ' + data.training.length + ' training resources\n' +
+    '   ' + '='.repeat(94) + ' */\n\nwindow.EW4ALL_SAT = ' + JSON.stringify(data, null, 2) + ';\n';
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/javascript' }));
+
+  result.innerHTML =
+    '<div style="background:#FFFFFF;border:1px solid #DFE6EC;border-left:4px solid ' + (problems.length ? '#FAA61A' : '#1F7A3D') + ';padding:18px 20px">' +
+      '<div style="font:700 15px Montserrat,Arial,sans-serif">' + (problems.length ? 'Read, with ' + problems.length + ' thing' + (problems.length > 1 ? 's' : '') + ' to look at' : 'Read successfully') + '</div>' +
+      '<table style="border-collapse:collapse;margin:12px 0 4px;font-size:13px">' + summary + '</table>' +
+      (problems.length ? '<ul style="margin:12px 0 0;padding-left:18px;color:#B5460A;font-size:13px">' +
+        problems.map(p => '<li style="margin-bottom:3px">' + p + '</li>').join('') + '</ul>' : '') +
+      '<a href="' + url + '" download="dataset.js" style="display:inline-block;margin-top:16px;padding:10px 18px;background:#005BAA;color:#FFFFFF;font:700 13px Montserrat,Arial,sans-serif;text-decoration:none">Download dataset.js</a>' +
+      '<div style="font-size:12.5px;color:#5A6A7C;margin-top:10px">Save it over <strong>data/dataset.js</strong> and commit it together with the workbook.</div>' +
+    '</div>';
+}
+
+// values that must come from the Reference sheet, and links that ought to be there
+function check(data) {
+  const out = [];
+  const hazards = new Set(data.hazardMeta.map(h => h.name));
+  const operators = new Set(data.operators.map(o => o.name));
+  const groups = new Set(data.products.map(p => p.group));
+  const seen = {};
+
+  data.products.forEach(p => {
+    p.hazards.filter(h => !hazards.has(h)).forEach(h => out.push('Product ' + p.id + ': hazard "' + h + '" is not on the Hazards sheet'));
+    p.operators.filter(o => !operators.has(o)).forEach(o => out.push('Product ' + p.id + ': operator "' + o + '" is not on the Operators sheet'));
+    if (!p.group) out.push('Product ' + p.id + ': no product group');
+    if (!p.channels.length) out.push('Product ' + p.id + ' (' + p.name + '): no access route');
+    seen[p.id] = (seen[p.id] || 0) + 1;
+  });
+  Object.keys(seen).filter(id => seen[id] > 1).forEach(id => out.push('Product ID ' + id + ' is used ' + seen[id] + ' times'));
+
+  // the same product name under two different providers is normal — KMA and CMA both
+  // publish a "Land Surface Temperature". The same name under the SAME provider is not.
+  const names = {};
+  data.products.forEach(p => { const k = p.provider + ' — ' + p.name; names[k] = (names[k] || 0) + 1; });
+  Object.keys(names).filter(k => names[k] > 1)
+    .forEach(k => out.push(names[k] + ' products from the same provider are named "' + k.split(' — ')[1] + '"'));
+
+  data.training.forEach(t => {
+    if (!t.urls.length) out.push('Training ' + t.id + ' (' + t.title.slice(0, 40) + '…): no link');
+    t.hazards.filter(h => !hazards.has(h)).forEach(h => out.push('Training ' + t.id + ': hazard "' + h + '" is not on the Hazards sheet'));
+  });
+
+  if (groups.size > 20) out.push(groups.size + ' distinct product groups — check for typos, there should be about 13');
+  return out.slice(0, 25);
+}
+
+function row(label, before, after) {
+  const change = after === before ? 'unchanged' : (after > before ? '+' : '') + (after - before);
+  return '<tr><td style="padding:3px 18px 3px 0;color:#5A6A7C">' + label + '</td>' +
+         '<td style="padding:3px 18px 3px 0;font-weight:700">' + after + '</td>' +
+         '<td style="padding:3px 0;color:' + (after === before ? '#8C99A6' : '#00707F') + '">' + change + '</td></tr>';
+}
+
+function say(text, colour) {
+  result.innerHTML = '<div style="font-size:13.5px;color:' + colour + '">' + text + '</div>';
+}
+</script>
+</body>
+</html>
