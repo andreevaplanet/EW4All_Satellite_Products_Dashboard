@@ -629,12 +629,18 @@ class Component extends DCLogic {
     const ours = D.operators.map(o => o.name);
     const mine = W.records.filter(r => r.operator && ours.indexOf(r.operator) >= 0);
     const noPlatform = mine.filter(r => !r.platforms.length);
-    const noVariable = mine.filter(r => r.platforms.length && !r.vars.length);
+    // A Level 1 record is radiances or counts and never states a geophysical variable, so
+    // it will appear here on every load and never need anything done about it. Counted, but
+    // not listed, so that a record which genuinely puzzles the rules is visible.
+    const isLevel1 = r => /\blevel ?1|\bl1[a-c]?\b/i.test(r.title || '');
+    const noVariable = mine.filter(r => r.platforms.length && !r.vars.length && !isLevel1(r));
+    const level1 = mine.filter(r => r.platforms.length && !r.vars.length && isLevel1(r));
     const unknownOrg = W.records.filter(r => !r.operator);
     console.info('[WIS2] ' + W.records.length + ' satellite records read at ' + W.fetched +
       ' · ' + Object.keys(W.byProduct).length + ' products matched' +
       ' · ' + noPlatform.length + ' unrecognised platform, ' + noVariable.length + ' no variable stated, ' +
-      unknownOrg.length + ' from organisations outside the dashboard.' +
+      unknownOrg.length + ' from organisations outside the dashboard' +
+      (level1.length ? ', ' + level1.length + ' Level 1 feeds correctly unmatched' : '') + '.' +
       // only an unrecognised platform needs a rule change; a record that states no variable
       // is usually a Level 1 feed, which is correctly left unmatched
       (noPlatform.length ? ' Platforms needing a rule update are listed below.' : ''));
