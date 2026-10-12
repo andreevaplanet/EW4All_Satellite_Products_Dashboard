@@ -614,6 +614,9 @@ class Component extends DCLogic {
       }
       if (this._gone) return;
       const digest = this.digestWis2(all);
+      // exposed so the catalogue read can be exported for the Power BI workbook without
+      // maintaining a second copy of the matching rules
+      if (typeof window !== 'undefined') window.EW4ALL_WIS2 = digest;
       this.reportWis2Coverage(digest);
       this.setState({ wis2: digest, wis2State: 'ready' });
     } catch (e) {
@@ -648,25 +651,17 @@ class Component extends DCLogic {
     if (noVariable.length) console.info('[WIS2] variable not stated:', noVariable.map(r => r.title + '  ' + r.id));
   }
 
-  // in scope = the WIS2 topic path says space-based-observations, a theme names satellite
-  // observation, or the title/keywords name a satellite platform or sounder
+  // In scope = the record's WIS2 topic, or failing that its record identifier, contains
+  // "space-based-observations". The topic hierarchy is a controlled WMO vocabulary every WIS2
+  // dataset is published under, so it needs no exclusion list. Some records declare no topic
+  // hierarchy; their broker links carry it. The identifier is the fallback for a record filed
+  // under a different topic but registered as space-based (MSS's Daily Haze Map).
+  // Task team decision, 12 October 2026 — the same rule as the Power BI report.
   wis2InScope(f) {
     const p = f.properties || {};
-    const themes = (p.themes || []).flatMap(t => (t.concepts || []).map(c => String(c.id) + ' ' + (c.url || '')));
-    const topic = (f.id + ' ' + themes.join(' ')).toLowerCase();
-    if (topic.indexOf('space-based-observations') >= 0) return true;
-    // the identifier is NOT searched for platform words: a URN segment like ":msg:" is a
-    // message token, not Meteosat Second Generation
-    const text = (p.title || '') + ' ' + (p.keywords || []).join(' ');
-    // Ground- and air-based observing systems are excluded outright. ECCC tags its
-    // weather-radar records "Remote sensing", so remote sensing alone is not evidence of
-    // a space-based platform, and "Tropics" in a campaign title is not the TROPICS
-    // smallsat constellation.
-    if (/\bradar\b|\bcappi\b|dropsonde|radiosonde|\bbuoy\b|rain ?gauge|gauge network|\bargo\b|drifting|profiler|ceilometer|\bship\b|aircraft|\bhalo\b|campaign/i.test(text)
-        && !/\bsatellite|space.?based|spaceborne|geostationary|polar.?orbit/i.test(text)) return false;
-    if (/satelliteobservation|satellite image|satellite imagery/i.test(themes.join(' '))) return true;
-    if (this.wis2Platforms(text).length) return true;
-    return /\b(satellite|space.?based|spaceborne|geostationary|polar.?orbit(ing)?|radio occultation|dbnet|dbrtn)\b/i.test(text);
+    let topic = p['wmo:topicHierarchy'] || '';
+    if (!topic) { const l = (f.links || []).find(x => x && x.channel); topic = l ? l.channel : ''; }
+    return (topic + ' ' + (f.id || '')).toLowerCase().indexOf('space-based-observations') >= 0;
   }
 
   // WIS2 identifiers are urn:wmo:md:<centre-id>:<local-id>. The centre id is a controlled
@@ -958,7 +953,9 @@ class Component extends DCLogic {
     const scoped = features.filter(f => this.wis2InScope(f));
     const products = D.products;
     const prodTags = products.map(p => ({
-      p, primary: this.wis2Primary(p.name) || this.wis2Primary(p.group),
+      // the variable comes from the product name only: a product group is far broader than a
+      // variable and would only ever add matches on weaker evidence. 12 October 2026.
+      p, primary: this.wis2Primary(p.name),
       instrument: this.wis2Instrument(p.name) || this.wis2Instrument(p.inputs.join(' ')),
       variant: this.wis2Variant(p.name),
       sats: p.satellites, ops: this.ops(p)
